@@ -5,29 +5,40 @@ from forms import RegistrationForm
 from db import DB, DBConnNotOpen, OwnerDoesNotExist
 from psycopg2 import OperationalError, errors, InterfaceError
 from werkzeug.wrappers import Response
+import logging
+from datetime import datetime, timezone
 from typing import Any, Optional, Tuple
 
 app: Flask = Flask(__name__)
 app.config['SECRET_KEY'] = '1D1dn0t5tE4L7Hi5s3cR37k3Y'
 db: DB = DB()
 
+def get_log_filename(format: str) -> str:
+    return datetime.now(timezone.utc).strftime(format)
+
 def init_db() -> None:
     try:
         if db.get_connection() is None:
             exit(1)
+        app.logger.info('Successfully connected to database.')
     except OperationalError as oe:
         print('Failed to connect to database:', str(oe))
+        app.logger.exception(oe)
         exit(1)
 
     try:
         db.create_all()
         db.commit()
-    except DBConnNotOpen:
+        app.logger.info('Successfully created all the database tables.')
+    except DBConnNotOpen as dbe:
         print('No database connection!!  Connect to database first!')
+        app.logger.exception(dbe)
     except errors.InFailedSqlTransaction as sql_err:
         print('Failed to execute query:', str(sql_err))
+        app.logger.exception(sql_err)
     except InterfaceError as ie:
         print('Failed to execute query:', str(ie))
+        app.logger.exception(ie)
 
 @app.errorhandler(404)
 def not_found(err) -> Tuple[str, int]:
@@ -37,12 +48,15 @@ def not_found(err) -> Tuple[str, int]:
 def index() -> str:
     try:
         return render_template('index.html', pets=db.get_pets())
-    except DBConnNotOpen:
+    except DBConnNotOpen as dbe:
         print('No database connection!!  Connect to database first!')
+        app.logger.exception(dbe)
     except errors.InFailedSqlTransaction as sql_err:
         print('Failed to execute query:', str(sql_err))
+        app.logger.exception(sql_err)
     except InterfaceError as ie:
         print('Failed to execute query:', str(ie))
+        app.logger.exception(ie)
     return render_template('index.html', pets=None)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -52,14 +66,19 @@ def register() -> str | Response:
         try:
             db.insert(form)
             db.commit()
-        except DBConnNotOpen:
+            app.logger.info('Pet animal successfully registered.')
+        except DBConnNotOpen as dbe:
             print('No database connection!!  Connect to database first!')
+            app.logger.exception(dbe)
         except errors.InFailedSqlTransaction as sql_err:
             print('Failed to execute query:', str(sql_err))
+            app.logger.exception(sql_err)
         except InterfaceError as ie:
             print('Failed to execute query:', str(ie))
-        except OwnerDoesNotExist:
+            app.logger.exception(ie)
+        except OwnerDoesNotExist as ode:
             print('Owner `' + form.owner.data + '\' doesn\'t exist!')
+            app.logger.exception(ode)
         return redirect(url_for('index'))
     return render_template('registration_form.html', form=form)
 
@@ -71,14 +90,19 @@ def update(id: int) -> str | Response:
         try:
             db.update(id, form)
             db.commit()
-        except DBConnNotOpen:
+            app.logger.info('Pet details successfully updated.')
+        except DBConnNotOpen as dbe:
             print('No database connection!!  Connect to database first!')
+            app.logger.exception(dbe)
         except errors.InFailedSqlTransaction as sql_err:
             print('Failed to execute query:', str(sql_err))
+            app.logger.exception(sql_err)
         except InterfaceError as ie:
             print('Failed to execute query:', str(ie))
-        except OwnerDoesNotExist:
+            app.logger.exception(ie)
+        except OwnerDoesNotExist as ode:
             print('Owner `' + form.owner.data + '\' doesn\'t exists!')
+            app.logger.exception(ode)
         return redirect(url_for('index'))
 
     pet: Optional[Pet] = db.get_pet(id)
@@ -95,14 +119,21 @@ def delete(id: int) -> Response:
     try:
         db.delete(id)
         db.commit()
-    except DBConnNotOpen:
+    except DBConnNotOpen as dbe:
         print('No database connection!!  Connect to database first!')
+        app.logger.exception(dbe)
     except errors.InFailedSqlTransaction as sql_err:
         print('Failed to execute query:', str(sql_err))
+        app.logger.exception(sql_err)
     except InterfaceError as ie:
         print('Failed to execute query:', str(ie))
+        app.logger.exception(ie)
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        filename=f'logs/{ get_log_filename(format="%Y%m%d%H%M%S") }.log',
+        level=logging.DEBUG
+    )
     init_db()
     app.run(debug=True)

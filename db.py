@@ -40,8 +40,8 @@ class DB:
         if not cls.conn:
             cls.conn = psycopg2.connect(
                 f'dbname={ DBCONFIG["NAME"] } \
-                  user={ DBCONFIG["USER"] } \
-                  password={ DBCONFIG["PASS"] }'
+                    user={ DBCONFIG["USER"] } \
+                password={ DBCONFIG["PASS"] }'
             )
             cls.cur = cls.conn.cursor()
         return cls.conn
@@ -60,7 +60,7 @@ class DB:
         '''
         Creates all the database tables used throughout the session
         '''
-        if not cls.cur: raise DBConnNotOpen()
+        if not cls.cur: raise DBConnNotOpen('No database connection!')
         cls.cur.execute(
             '''
             CREATE TABLE IF NOT EXISTS owners (
@@ -79,7 +79,11 @@ class DB:
 
     @classmethod
     def insert(cls, form: RegistrationForm) -> None:
-        if not cls.cur: raise DBConnNotOpen()
+        '''
+        Registers a pet by taking information from the registration form
+        and inserting them into the database.
+        '''
+        if not cls.cur: raise DBConnNotOpen('No database connection!')
 
         pet = Pet(0, form.category.data, form.breed.data,
                   float(form.price.data), form.owner.data)
@@ -89,7 +93,10 @@ class DB:
         )
 
         owner = cls.cur.fetchone()
-        if not owner: raise OwnerDoesNotExist()
+        if not owner:
+            raise OwnerDoesNotExist(
+                f'Owner `{ pet.get_owner() }\' doesn\'t exist!'
+            )
         owner_id: int = owner[0]
 
         cls.cur.execute(
@@ -100,7 +107,10 @@ class DB:
 
     @classmethod
     def update(cls, id: int, form: RegistrationForm) -> None:
-        if not cls.cur: return  # TODO: raise exception
+        '''
+        Updates pet details from the form for the given id
+        '''
+        if not cls.cur: raise DBConnNotOpen('No database connection!')
 
         pet = Pet(id, form.category.data, form.breed.data,
                   float(form.price.data), form.owner.data)
@@ -110,7 +120,10 @@ class DB:
         )
 
         owner = cls.cur.fetchone()
-        if not owner: raise OwnerDoesNotExist()
+        if not owner:
+            raise OwnerDoesNotExist(
+                f'Owner `{ pet.get_owner() }\' doesn\'t exist!'
+            )
         owner_id: int = owner[0]
 
         cls.cur.execute(
@@ -128,12 +141,12 @@ class DB:
 
     @classmethod
     def delete(cls, id: int) -> None:
-        if not cls.cur: raise DBConnNotOpen()
+        if not cls.cur: raise DBConnNotOpen('No database connection!')
         cls.cur.execute('delete from pets where id = %s', (id,))
 
     @classmethod
     def get_pets(cls) -> Optional[List[Pet]]:
-        if not cls.cur: raise DBConnNotOpen()
+        if not cls.cur: raise DBConnNotOpen('No database connection!')
         cls.cur.execute(
             'select pets.id, category, breed, price, owners.name \
             from pets, owners where pets.owner = owners.id;'
@@ -145,7 +158,7 @@ class DB:
 
     @classmethod
     def get_pet(cls, id: int) -> Optional[Pet]:
-        if not cls.cur: raise DBConnNotOpen()
+        if not cls.cur: raise DBConnNotOpen('No database connection!')
         cls.cur.execute(
             'select pets.id, category, breed, price, owners.name \
             from pets, owners where pets.owner = owners.id and \
@@ -156,5 +169,5 @@ class DB:
 
     @classmethod
     def commit(cls) -> None:
-        if not cls.conn: raise DBConnNotOpen()
+        if not cls.conn: raise DBConnNotOpen('No database connection!')
         cls.conn.commit()
