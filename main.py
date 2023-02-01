@@ -13,10 +13,11 @@ db: DB = DB()
 
 def init_db() -> None:
     try:
-        db.connect()
+        if db.get_connection() is None:
+            exit(1)
     except OperationalError as oe:
         print('Failed to connect to database:', str(oe))
-        return
+        exit(1)
 
     try:
         db.create_all()
@@ -104,5 +105,4 @@ def delete(id: int) -> Response:
 
 if __name__ == '__main__':
     init_db()
-    if db.has_connection():
-        app.run(debug=True)
+    app.run(debug=True)

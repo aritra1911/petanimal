@@ -2,6 +2,7 @@ import psycopg2
 from psycopg2 import errors
 from forms import RegistrationForm
 from models import Pet
+from config import DBCONFIG
 from typing import Optional, List, Tuple, Any
 
 class DBConnNotOpen(Exception):
@@ -22,7 +23,7 @@ class OwnerDoesNotExist(Exception):
 
 class DB:
     '''
-    Main database and operations handler class
+    Main database and operations handler static class
     '''
     conn: Optional[Any] = None
     cur: Optional[Any] = None
@@ -31,19 +32,19 @@ class DB:
         pass
     
     @classmethod
-    def connect(cls) -> None:
+    def get_connection(cls) -> Any:
         '''
-        Connect to PostgreSQL database.
+        Connect to database and return the connection.
+        If an active connection already exists, return that instead.
         '''
         if not cls.conn:
             cls.conn = psycopg2.connect(
-                'dbname=bajaj user=postgres password=unlockdb'
+                f'dbname={ DBCONFIG["NAME"] } \
+                  user={ DBCONFIG["USER"] } \
+                  password={ DBCONFIG["PASS"] }'
             )
             cls.cur = cls.conn.cursor()
-
-    @classmethod
-    def has_connection(cls) -> bool:
-        return cls.conn is not None
+        return cls.conn
 
     @classmethod
     def disconnect(cls) -> None:
