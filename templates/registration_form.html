@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Please fill out the following details of your pet:</h2>
+  <form method="POST">
+    {{ form.hidden_tag() }}
+    {{ form.category.label }}{{ form.category }}<br />
+    {{ form.breed.label }}{{ form.breed }}<br />
+    {{ form.price.label }}{{ form.price }}<br />
+    {{ form.owner.label }}{{ form.owner }}<br />
+    {{ form.submit }}
+  </form>
+{% endblock content %}

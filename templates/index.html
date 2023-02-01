@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Welcome to Pet Animals Registration Form</h2>
+  {% if not pets %}
+    We currently have NO pets registered.
+    Please <a href={{ url_for('register') }}>click here</a>
+    to register your first pet.
+  {% else %}
+    We already have the following pets:<br />
+    <br />
+    <table border="1">
+      <tr>
+        <th>Category</th>
+        <th>Breed</th>
+        <th>Price (Rs.)</th>
+        <th>Owner</th>
+        <th>Edit</th>
+        <th>Delete</th>
+      </tr>
+      {% for pet in pets %}
+      <tr>
+        <td>{{ pet.get_category() }}</td>
+        <td>{{ pet.get_breed() }}</td>
+        <td>{{ pet.get_price() }}</td>
+        <td>{{ pet.get_owner() }}</td>
+        <td><a href={{ url_for('update', id=pet.get_id()) }}>Edit</a></td>
+        <td><a href={{ url_for('delete', id=pet.get_id()) }}>Delete</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+    <br />
+    You can register your pet too by
+    <a href={{ url_for('register') }}>clicking here</a>.
+  {% endif %}
+{% endblock content %}
